@@ -14,7 +14,6 @@ class TabGeoFence extends StatefulWidget {
 }
 
 class _TabGeoFenceState extends State<TabGeoFence> {
-
   List<StreamSubscription<GeoFenceResult>> _subscriptions = [];
 
   GeolocationResult _locationOperationalResult;
@@ -51,21 +50,19 @@ class _TabGeoFenceState extends State<TabGeoFence> {
   }
 
   _requestGeoFencingPressed() {
-
-        if (!isMonitoringRegions) {
-          setState(() {
-              isMonitoringRegions = true;
-          });
-          _listenToGeoFenceUpdate(
-            Geolocation.addGeoFencingRequest(id: 0, geoFence: new GeoFence(50.867138, 4.713505, 8.0, 100.0, "aTestId"))
-          );
-        } else {
-          setState(() {
-              isMonitoringRegions = false;
-          });
-          _subscriptions.forEach((it) => it.cancel());
-        }
-
+    if (!isMonitoringRegions) {
+      setState(() {
+        isMonitoringRegions = true;
+      });
+      _listenToGeoFenceUpdate(Geolocation.addGeoFencingRequest(
+          id: 0,
+          geoFence: new GeoFence(50.867138, 4.713505, 8.0, 100.0, "aTestId")));
+    } else {
+      setState(() {
+        isMonitoringRegions = false;
+      });
+      _subscriptions.forEach((it) => it.cancel());
+    }
   }
 
   _listenToGeoFenceUpdate(Stream<GeoFenceResult> stream) {
@@ -83,8 +80,8 @@ class _TabGeoFenceState extends State<TabGeoFence> {
   _updateGeoFence(GeoFenceResult result) {
     print(result.dataToString());
     setState(() {
-          _geoFenceResult = result;
-        });
+      _geoFenceResult = result;
+    });
   }
 
   @override
@@ -105,15 +102,14 @@ class _TabGeoFenceState extends State<TabGeoFence> {
           new _Item(
             isPermissionRequest: true,
             isGeoFenceRequest: false,
-                        isMonitoringRegions: this.isMonitoringRegions,
+            isMonitoringRegions: this.isMonitoringRegions,
             result: _requestPermissionResult,
             onPressed: _requestLocationPermissionPressed,
           ),
           new _Item(
             isPermissionRequest: false,
             isGeoFenceRequest: true,
-                        isMonitoringRegions: this.isMonitoringRegions,
-
+            isMonitoringRegions: this.isMonitoringRegions,
             geoFenceResult: _geoFenceResult,
             onPressed: _requestGeoFencingPressed,
           ),
@@ -124,7 +120,13 @@ class _TabGeoFenceState extends State<TabGeoFence> {
 }
 
 class _Item extends StatelessWidget {
-  _Item({@required this.isPermissionRequest, this.isGeoFenceRequest, this.isMonitoringRegions, this.result, this.geoFenceResult, this.onPressed});
+  _Item(
+      {@required this.isPermissionRequest,
+      this.isGeoFenceRequest,
+      this.isMonitoringRegions,
+      this.result,
+      this.geoFenceResult,
+      this.onPressed});
 
   final bool isPermissionRequest;
   final bool isGeoFenceRequest;
@@ -169,9 +171,7 @@ class _Item extends StatelessWidget {
         status = 'failure';
         color = Colors.red;
       }
-
-    } 
-    else if (isGeoFenceRequest) {
+    } else if (isGeoFenceRequest) {
       if (geoFenceResult != null) {
         if (geoFenceResult.isSuccessful) {
           text = 'Is user inside $geoFenceResult.geoFence.identifier ?';
@@ -182,7 +182,6 @@ class _Item extends StatelessWidget {
           status = 'failure';
           color = Colors.red;
         }
-        
       } else {
         if (!isMonitoringRegions) {
           text = 'Tap to monitor region';
@@ -193,11 +192,8 @@ class _Item extends StatelessWidget {
           status = 'waiting';
           color = Colors.blueGrey;
         }
-        
       }
-
-      }
-    else {
+    } else {
       text = 'Is ${isPermissionRequest
           ? 'permission granted'
           : 'location operational'}?';
