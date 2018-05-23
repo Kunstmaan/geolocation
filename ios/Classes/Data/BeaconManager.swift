@@ -16,7 +16,7 @@ class BeaconManager: NSObject {
     
     fileprivate let locationManager: CLLocationManager = CLLocationManager()
     fileprivate var cbManager: CBCentralManager?
-    fileprivate var monitoredRegions: [MonitoredRegion] = [MonitoredRegion]()
+    fileprivate var monitoredRegions: [MonitoredBeaconRegion] = [MonitoredBeaconRegion]()
     fileprivate var resumeScanning = false
     fileprivate var startScanning  = false
     fileprivate var batterySaverTimer: Timer?
@@ -29,7 +29,7 @@ class BeaconManager: NSObject {
     }
     
     func add(region: String, identifier: String, limit: UInt = 0, includeUnknown: Bool = false,  onRanged: ((BeaconAction) -> ())?) throws {
-        let newRegion = try MonitoredRegion(with: region, identifier: identifier, limit: limit, includeUnknown: includeUnknown, onRanged: onRanged)
+        let newRegion = try MonitoredBeaconRegion(with: region, identifier: identifier, limit: limit, includeUnknown: includeUnknown, onRanged: onRanged)
         if !monitoredRegions.contains(where: { (region) -> Bool in
             return region.equals(other: newRegion)
         }) {
@@ -62,14 +62,14 @@ class BeaconManager: NSObject {
         }
     }
     
-    private func startMonitoring(region: MonitoredRegion) {
+    private func startMonitoring(region: MonitoredBeaconRegion) {
         region.region.notifyEntryStateOnDisplay = true
         region.region.notifyOnEntry = true
         region.region.notifyOnExit = true
         self.locationManager.startRangingBeacons(in: region.region)
     }
     
-    private func stopMonitoring(region: MonitoredRegion) {
+    private func stopMonitoring(region: MonitoredBeaconRegion) {
         region.region.notifyEntryStateOnDisplay = false
         region.region.notifyOnEntry = false
         region.region.notifyOnExit = false
@@ -148,7 +148,7 @@ extension BeaconManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {}
 }
 
-struct MonitoredRegion: Codable {
+struct MonitoredBeaconRegion: Codable {
     
     let region: CLBeaconRegion
     let regionUuid: String
@@ -156,7 +156,7 @@ struct MonitoredRegion: Codable {
     let includeUnknown: Bool
     let limit: UInt
     
-    fileprivate var didRange: ((BeaconAction) -> ())?
+    var didRange: ((BeaconAction) -> ())?
     
     enum CodingKeys: String, CodingKey {
         case regionUuid = "region_uuid"
@@ -197,8 +197,12 @@ struct MonitoredRegion: Codable {
         try container.encode(limit, forKey: .limit)
     }
     
-    func equals(other: MonitoredRegion) -> Bool {
-        return other.region == self.region
+    func equals(other: MonitoredBeaconRegion) -> Bool {
+        return other.regionUuid == self.regionUuid
+    }
+    
+    static func ==(lhs: MonitoredBeaconRegion, rhs: MonitoredBeaconRegion) -> Bool {
+        return lhs.regionUuid == rhs.regionUuid
     }
     
 }

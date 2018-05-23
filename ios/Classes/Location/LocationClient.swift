@@ -17,6 +17,9 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
     private var geoFenceUpdatesCallback: GeoFenceUpdatesCallback? = nil
     private var geoFenceUpdatesRequests: Array<GeoFenceUpdatesRequest> = []
     
+    private var iBeaconUpdatesCallback: IBeaconUpdatesCallback? = nil
+    private var iBeaconUpdatesRequests: Array<IBeaconUpdatesRequest> = []
+    
     private var hasLocationRequest: Bool {
         return !locationUpdatesRequests.isEmpty
     }
@@ -25,7 +28,8 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
     }
     
     private var monitoredRegions: [MonitoredRegion] = [MonitoredRegion]()
-    
+    private var monitoredBeaconRegions: [MonitoredBeaconRegion] = [MonitoredBeaconRegion]()
+
     private var isPaused = false
     
     override init() {
@@ -36,6 +40,7 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
     
     // One shot API
     
+    // GeoFence
     func addGeoFenceUpdates(request: GeoFenceUpdatesRequest) {
         self.geoFenceUpdatesRequests.append(request)
         register(request: request) { (result) in
@@ -98,6 +103,65 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
                                               radius: request.region.radius,
                                               identifier: request.region.identifier)
         locationManager.stopMonitoring(for: geofenceRegion)
+    }
+    
+    // iBeacon
+    func addIBeaconUpdates(request: IBeaconUpdatesRequest) {
+        self.iBeaconUpdatesRequests.append(request)
+        register(request: request) { (result) in
+            self.iBeaconUpdatesCallback?(result)
+        }
+    }
+    
+    func removeIBeaconUpdates(request: IBeaconUpdatesRequest) {
+        guard let index = iBeaconUpdatesRequests.index(where: { $0.id == request.id }) else {
+            return
+        }
+        
+        iBeaconUpdatesRequests.remove(at: index)
+    }
+    
+    func registerIBeaconUpdates(callback: @escaping IBeaconUpdatesCallback) {
+        precondition(iBeaconUpdatesCallback == nil, "trying to register a 2nd geofence callback")
+        iBeaconUpdatesCallback = callback
+    }
+    
+    func deregisterIBeaconUpdatesCallback() {
+        precondition(iBeaconUpdatesCallback != nil, "trying to deregister a non-existent geofence updates callback")
+        iBeaconUpdatesCallback = nil
+    }
+    
+    
+    func register(request: IBeaconUpdatesRequest, callback: @escaping (Result<IBeaconResult>) -> Void) {
+        if !(CLLocationManager.authorizationStatus() == .authorizedWhenInUse || CLLocationManager.authorizationStatus() == .authorizedAlways){
+            print("app doesn't have permission for location updates")
+            callback(Result<IBeaconResult>.failure(of: .permissionDenied))
+        }
+        if monitoredBeaconRegions.count > 19 {
+            print("max amount of regions reached, remove one or more regions using unregister(request:) before proceeding")
+            callback(Result<IBeaconResult>.failure(of: .tooManyRegionsMonitored))
+        }
+        
+        do {
+            let monitoredRegion = try MonitoredBeaconRegion(with: request.region.regionUuid, identifier: request.region.regionIdentifier, limit: request.region.limit, includeUnknown: request.region.includeUnknown) { (action) in
+                callback(Result<IBeaconResult>.success(with: IBeaconResult(id: request.id, beacon: action, result: true)))
+            }
+            if !monitoredBeaconRegions.contains(monitoredRegion) {
+                monitoredBeaconRegions.append(monitoredRegion)
+                iBeaconUpdatesRequests.append(request)
+                BeaconManager.shared.add(region: monitoredRegion.regionUuid, identifier: monitoredRegion.regionIdentifier, limit: monitoredRegion.limit, includeUnknown: monitoredRegion.includeUnknown, onRanged: monitoredRegion.didRange)
+            }
+        } catch {
+    callback(Result<IBeaconResult>.failure(of: .tooManyRegionsMonitored))
+        }
+        
+    }
+    
+    func unregister(request: IBeaconUpdatesRequest) {
+        monitoredBeaconRegions = monitoredBeaconRegions.filter { return $0.regionUuid != request.region.regionUuid }
+        iBeaconUpdatesRequests = iBeaconUpdatesRequests.filter { return $0.region.regionUuid != request.region.regionUuid }
+
+        BeaconManager.shared.remove(region: request.region.regionUuid)
     }
     
     func isLocationOperational(with permission: Permission) -> Result<Bool> {
@@ -304,7 +368,8 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
     
     typealias LocationUpdatesCallback = (Result<[Location]>) -> Void
     typealias GeoFenceUpdatesCallback = (Result<GeoFenceResult>) -> Void
-
+    typealias IBeaconUpdatesCallback = (Result<IBeaconResult>) -> Void
+    
     struct ServiceStatus<T: Codable> {
         let isReady: Bool
         let needsAuthorization: Permission?

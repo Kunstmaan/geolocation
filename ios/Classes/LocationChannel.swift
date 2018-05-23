@@ -11,11 +11,13 @@ class LocationChannel {
     private let locationClient: LocationClient
     private let locationUpdatesHandler: LocationUpdatesHandler
     private let geoFenceUpdateshandler: GeoFenceUpdatesHandler
+    private let iBeaconUpdatesHandler: IBeaconUpdatesHandler
     
     init(locationClient: LocationClient) {
         self.locationClient = locationClient
         self.locationUpdatesHandler = LocationUpdatesHandler(locationClient: locationClient)
         self.geoFenceUpdateshandler = GeoFenceUpdatesHandler(locationClient: locationClient)
+        self.iBeaconUpdatesHandler = IBeaconUpdatesHandler(locationClient: locationClient)
     }
     
     func register(on plugin: SwiftGeolocationPlugin) {
@@ -27,6 +29,9 @@ class LocationChannel {
         
         let fencingChannel = FlutterEventChannel(name: "geolocation/geoFenceUpdates", binaryMessenger: plugin.registrar.messenger())
         fencingChannel.setStreamHandler(geoFenceUpdateshandler)
+        
+        let iBeaconChannel = FlutterEventChannel(name: "geolocation/iBeaconUpdates", binaryMessenger: plugin.registrar.messenger())
+        iBeaconChannel.setStreamHandler(iBeaconUpdatesHandler)
     }
     
     private func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -45,6 +50,10 @@ class LocationChannel {
             addGeoFencingRequest(Codec.decodeGeoFencingRequest(from: call.arguments))
         case "removeGeoFencingRequest":
             removeGeoFencingRequest(Codec.decodeGeoFencingRequest(from: call.arguments))
+        case "addIBeaconRequest":
+            addIBeaconRequest(Codec.decodeIBeaconRequest(from: call.arguments))
+        case "removeIBeaconRequest":
+            removeIBeaconRequest(Codec.decodeIBeaconRequest(from: call.arguments))
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -80,6 +89,14 @@ class LocationChannel {
     
     private func removeGeoFencingRequest(_ request: GeoFenceUpdatesRequest) {
         locationClient.removeGeoFenceUpdates(request: request)
+    }
+    
+    private func addIBeaconRequest(_ request: IBeaconUpdatesRequest) {
+        locationClient.addIBeaconUpdates(request: request)
+    }
+    
+    private func removeIBeaconRequest(_ request: IBeaconUpdatesRequest) {
+        locationClient.removeIBeaconUpdates(request: request)
     }
     
     
@@ -119,6 +136,26 @@ class LocationChannel {
         
         public func onCancel(withArguments arguments: Any?) -> FlutterError? {
             locationClient.deregisterGeoFenceUpdatesCallback()
+            return nil
+        }
+    }
+    
+    class IBeaconUpdatesHandler: NSObject, FlutterStreamHandler {
+        private let locationClient: LocationClient
+        
+        init(locationClient: LocationClient) {
+            self.locationClient = locationClient
+        }
+        
+        public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+            locationClient.registerIBeaconUpdates { result in
+                events(Codec.encode(result: result))
+            }
+            return nil
+        }
+        
+        public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+            locationClient.deregisterIBeaconUpdatesCallback()
             return nil
         }
     }

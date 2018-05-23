@@ -24,4 +24,8 @@ struct Codec {
     static func decodeGeoFencingRequest(from arguments: Any?) -> GeoFenceUpdatesRequest {
         return try! jsonDecoder.decode(GeoFenceUpdatesRequest.self, from: (arguments as! String).data(using: .utf8)!)
     }
+    
+    static func decodeIBeaconRequest(from arguments: Any?) -> IBeaconUpdatesRequest {
+        return try! jsonDecoder.decode(IBeaconUpdatesRequest.self, from: (arguments as! String).data(using: .utf8)!)
+    }
 }
