@@ -198,11 +198,9 @@ Stream<GeoFenceResult> geoFenceUpdates(_GeoFenceUpdatesRequest request, bool sin
 
     return controller.stream;
   }
-}
 
-  // Creates a new subscription to the channel stream and notifies
-// the platform about the desired params (accuracy, frequency, strategy) so the platform
-// can start the location request if it's the first subscription or update ongoing request with new params if needed
+// Creates a new subscription to the channel stream and notifies
+// the platform about ranged iBeacons
 Stream<IBeaconResult> iBeaconUpdates(_IBeaconUpdatesRequest request, bool singleUpdate) {
     // The stream that will be returned for the current geofence request
     StreamController<IBeaconResult> controller;
@@ -249,7 +247,7 @@ Stream<IBeaconResult> iBeaconUpdates(_IBeaconUpdatesRequest request, bool single
         _log('add iBeacon updates request [id=${subscriptionWithRequest.request
             .id}]');
         _invokeChannelMethod('ibeacon result', _channel, 'addIBeaconRequest',
-            _Codec.encodeGeoFenceUpdatesRequest(request));
+            _Codec.encodeIBeaconUpdatesRequest(request));
       },
       onCancel: () async {
         _log('remove iBeacon updates request [id=${subscriptionWithRequest

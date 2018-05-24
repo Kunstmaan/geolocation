@@ -13,7 +13,7 @@ class _Codec {
   static GeoFenceResult decodeGeoFenceResult(String data) =>
       _JsonCodec.geoFenceResultFromJson(json.decode(data));
 
-  static GeoFenceResult decodeIBeaconResult(String data) =>
+  static IBeaconResult decodeIBeaconResult(String data) =>
       _JsonCodec.iBeaconResultFromJson(json.decode(data));
 
   static String encodeLocationPermission(LocationPermission permission) =>
@@ -120,7 +120,6 @@ class _JsonCodec {
       json['uuid'],
       _Codec.parseJsonNumber(json['major']), 
       _Codec.parseJsonNumber(json['minor']), 
-      _Codec.parseJsonNumber(json['proximity']), 
     );
 
   static GeoFence geoFenceFromJson(Map<String, dynamic> json) =>

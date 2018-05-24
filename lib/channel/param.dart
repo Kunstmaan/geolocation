@@ -41,7 +41,7 @@ class _IBeaconUpdatesRequest {
     this.includeUnknown,
   );
   int id;
-  final IBeaconregion region;
+  final IBeaconRegion region;
   int limit;
   bool includeUnknown;
 }

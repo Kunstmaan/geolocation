@@ -11,7 +11,7 @@ class IBeaconResult extends GeolocationResult {
   IBeaconResult._(
       bool isSuccessful, GeolocationResultError error, this.id, this.beacon, this.timeStamp): super._(isSuccessful, error);
 
-  IBeacon beacon;
+  final IBeacon beacon;
   final int id;
   final double timeStamp;
 
