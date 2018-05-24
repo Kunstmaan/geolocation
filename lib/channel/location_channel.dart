@@ -23,12 +23,17 @@ class _LocationChannel {
   //    until owner cancels it.
   static final _CustomEventChannel _locationUpdatesChannel =
       new _CustomEventChannel('geolocation/locationUpdates');
-
+  static final _CustomEventChannel _geoFenceUpdatesChannel =
+      new _CustomEventChannel('geolocation/geoFenceUpdates');
+  static final _CustomEventChannel _iBeaconUpdatesChannel =
+      new _CustomEventChannel('geolocation/iBeaconUpdates');
   static const String _loggingTag = 'location result';
 
   // Active subscriptions to channel event stream of location updates
   // Every data from channel stream will be forwarded to the subscriptions
   List<_LocationUpdatesSubscription> _locationUpdatesSubscriptions = [];
+  List<_GeoFenceUpdatesSubscription> _geoFenceUpdatesSubscriptions = [];
+  List<_IBeaconUpdatesSubscription> _iBeaconUpdatesSubscriptions = [];
 
   Future<GeolocationResult> isLocationOperational(
       LocationPermission permission) async {
@@ -124,6 +129,143 @@ class _LocationChannel {
 
     return controller.stream;
   }
+
+  // Creates a new subscription to the channel stream and notifies
+// the platform about the desired params (accuracy, frequency, strategy) so the platform
+// can start the location request if it's the first subscription or update ongoing request with new params if needed
+Stream<GeoFenceResult> geoFenceUpdates(_GeoFenceUpdatesRequest request, bool singleUpdate) {
+    // The stream that will be returned for the current geofence request
+    StreamController<GeoFenceResult> controller;
+
+    _GeoFenceUpdatesSubscription subscriptionWithRequest;
+
+    // Subscribe and listen to channel stream of geofence results
+    final StreamSubscription<GeoFenceResult> subscription =
+        _geoFenceUpdatesChannel.stream.map((data) {
+      _log(data, tag: _loggingTag);
+      var resultObject = _Codec.decodeGeoFenceResult(data);
+      return resultObject;
+    }).listen((GeoFenceResult result) {
+      // Forward channel stream geofence result to subscription
+      controller.add(result);
+    });
+
+    subscription.onDone(() {
+      _geoFenceUpdatesSubscriptions.remove(subscriptionWithRequest);
+          if (singleUpdate) {
+            controller.close();
+            subscription.cancel();
+          }
+    });
+
+    subscriptionWithRequest =
+        new _GeoFenceUpdatesSubscription(request, subscription);
+
+    // Add unique id for each request, in order to be able to remove them on platform side afterwards
+    subscriptionWithRequest.request.id =
+        (_geoFenceUpdatesSubscriptions.isNotEmpty
+                ? _geoFenceUpdatesSubscriptions
+                    .map((it) => it.request.id)
+                    .reduce(math.max)
+                : 0) +
+            1;
+
+    _log('create geofence updates request [id=${subscriptionWithRequest.request
+        .id}]');
+    _geoFenceUpdatesSubscriptions.add(subscriptionWithRequest);
+
+    controller = new StreamController<GeoFenceResult>.broadcast(
+      onListen: () {
+        _log('add geofence updates request [id=${subscriptionWithRequest.request
+            .id}]');
+        _invokeChannelMethod('geofence result', _channel, 'addGeoFencingRequest',
+            _Codec.encodeGeoFenceUpdatesRequest(request));
+      },
+      onCancel: () async {
+        _log('remove geofence updates request [id=${subscriptionWithRequest
+            .request
+            .id}]');
+        subscriptionWithRequest.subscription.cancel();
+
+        await _invokeChannelMethod(
+            'geofence result',
+            _channel,
+            'removeGeoFencingRequest',
+            _Codec.encodeGeoFenceUpdatesRequest(request));
+        _geoFenceUpdatesSubscriptions.remove(subscriptionWithRequest);
+      },
+    );
+
+    return controller.stream;
+  }
+
+// Creates a new subscription to the channel stream and notifies
+// the platform about ranged iBeacons
+Stream<IBeaconResult> iBeaconUpdates(_IBeaconUpdatesRequest request, bool singleUpdate) {
+    // The stream that will be returned for the current geofence request
+    StreamController<IBeaconResult> controller;
+
+    _IBeaconUpdatesSubscription subscriptionWithRequest;
+
+    // Subscribe and listen to channel stream of geofence results
+    final StreamSubscription<IBeaconResult> subscription =
+        _iBeaconUpdatesChannel.stream.map((data) {
+      _log(data, tag: _loggingTag);
+      var resultObject = _Codec.decodeIBeaconResult(data);
+      return resultObject;
+    }).listen((IBeaconResult result) {
+      // Forward channel stream geofence result to subscription
+      controller.add(result);
+    });
+
+    subscription.onDone(() {
+      _iBeaconUpdatesSubscriptions.remove(subscriptionWithRequest);
+          if (singleUpdate) {
+            controller.close();
+            subscription.cancel();
+          }
+    });
+
+    subscriptionWithRequest =
+        new _IBeaconUpdatesSubscription(request, subscription);
+
+    // Add unique id for each request, in order to be able to remove them on platform side afterwards
+    subscriptionWithRequest.request.id =
+        (_iBeaconUpdatesSubscriptions.isNotEmpty
+                ? _iBeaconUpdatesSubscriptions
+                    .map((it) => it.request.id)
+                    .reduce(math.max)
+                : 0) +
+            1;
+
+    _log('create geofence updates request [id=${subscriptionWithRequest.request
+        .id}]');
+    _iBeaconUpdatesSubscriptions.add(subscriptionWithRequest);
+
+    controller = new StreamController<IBeaconResult>.broadcast(
+      onListen: () {
+        _log('add iBeacon updates request [id=${subscriptionWithRequest.request
+            .id}]');
+        _invokeChannelMethod('ibeacon result', _channel, 'addIBeaconRequest',
+            _Codec.encodeIBeaconUpdatesRequest(request));
+      },
+      onCancel: () async {
+        _log('remove iBeacon updates request [id=${subscriptionWithRequest
+            .request
+            .id}]');
+        subscriptionWithRequest.subscription.cancel();
+
+        await _invokeChannelMethod(
+            'ibeacon result',
+            _channel,
+            'removeIBeaconRequest',
+            _Codec.encodeIBeaconUpdatesRequest(request));
+        _iBeaconUpdatesSubscriptions.remove(subscriptionWithRequest);
+      },
+    );
+
+    return controller.stream;
+  }
 }
 
 class _LocationUpdatesSubscription {
@@ -131,6 +273,20 @@ class _LocationUpdatesSubscription {
 
   final _LocationUpdatesRequest request;
   final StreamSubscription<LocationResult> subscription;
+}
+
+class _GeoFenceUpdatesSubscription {
+  _GeoFenceUpdatesSubscription(this.request, this.subscription);
+
+  final _GeoFenceUpdatesRequest request;
+  final StreamSubscription<GeoFenceResult> subscription;
+}
+
+class _IBeaconUpdatesSubscription {
+  _IBeaconUpdatesSubscription(this.request, this.subscription);
+
+  final _IBeaconUpdatesRequest request;
+  final StreamSubscription<IBeaconResult> subscription;
 }
 
 // Custom event channel that manages a single instance of the stream and exposes.

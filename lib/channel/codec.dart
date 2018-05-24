@@ -10,6 +10,12 @@ class _Codec {
   static LocationResult decodeLocationResult(String data) =>
       _JsonCodec.locationResultFromJson(json.decode(data));
 
+  static GeoFenceResult decodeGeoFenceResult(String data) =>
+      _JsonCodec.geoFenceResultFromJson(json.decode(data));
+
+  static IBeaconResult decodeIBeaconResult(String data) =>
+      _JsonCodec.iBeaconResultFromJson(json.decode(data));
+
   static String encodeLocationPermission(LocationPermission permission) =>
       platformSpecific(
         _Codec.encodeEnum(permission.android),
@@ -18,6 +24,12 @@ class _Codec {
 
   static String encodeLocationUpdatesRequest(_LocationUpdatesRequest request) =>
       json.encode(_JsonCodec.locationUpdatesRequestToJson(request));
+
+  static String encodeGeoFenceUpdatesRequest(_GeoFenceUpdatesRequest request) =>
+      json.encode(_JsonCodec.geoFenceUpdatesRequestToJson(request));
+
+  static String encodeIBeaconUpdatesRequest(_IBeaconUpdatesRequest request) =>
+      json.encode(_JsonCodec.iBeaconUpdatesRequestToJson(request));
 
   // see: https://stackoverflow.com/questions/49611724/dart-how-to-json-decode-0-as-double
   static double parseJsonNumber(dynamic value) {
@@ -84,6 +96,41 @@ class _JsonCodec {
             : null,
       );
 
+  static GeoFenceResult geoFenceResultFromJson(Map<String, dynamic> json) =>
+      new GeoFenceResult._(
+        json['isSuccessful'],
+        json['error'] != null ? resultErrorFromJson(json['error']) : null,
+        json['data']['id'],
+        json['data']['result'],
+        geoFenceFromJson(json['data']['region']),
+      );
+
+
+  static IBeaconResult iBeaconResultFromJson(Map<String, dynamic> json) =>
+      new IBeaconResult._(
+        json['isSuccessful'],
+        json['error'] != null ? resultErrorFromJson(json['error']) : null,
+        json['data']['id'],
+        iBeaconFromJson(json['data']),
+        _Codec.parseJsonNumber(json['data']['time_stamp']), 
+      );
+
+  static IBeacon iBeaconFromJson(Map<String, dynamic> json) =>
+    new IBeacon(
+      json['uuid'],
+      json['major'], 
+      json['minor'], 
+    );
+
+  static GeoFence geoFenceFromJson(Map<String, dynamic> json) =>
+      new GeoFence(
+        _Codec.parseJsonNumber(json['centerLatitude']), 
+        _Codec.parseJsonNumber(json['centerLongitude']), 
+        _Codec.parseJsonNumber(json['centerAltitude']), 
+        _Codec.parseJsonNumber(json['radius']), 
+        json['identifier'],
+        );
+
   static Location locationFromJson(Map<String, dynamic> json) => new Location._(
         _Codec.parseJsonNumber(json['latitude']),
         _Codec.parseJsonNumber(json['longitude']),
@@ -102,5 +149,29 @@ class _JsonCodec {
         ),
         'displacementFilter': request.displacementFilter,
         'inBackground': request.inBackground,
+      };
+
+   static Map<String, dynamic> geoFenceUpdatesRequestToJson(
+          _GeoFenceUpdatesRequest request) =>
+      {
+        'id': request.id,
+        'region': {
+          'identifier': request.geoFence.identifier,
+          'centerLatitude': request.geoFence.center.latitude,
+          'centerLongitude': request.geoFence.center.longitude,
+          'radius': request.geoFence.radius,
+        },
+      };
+
+    static Map<String, dynamic> iBeaconUpdatesRequestToJson(
+          _IBeaconUpdatesRequest request) =>
+      {
+        'id': request.id,
+        'region': {
+          'region_uuid': request.region.proximityUuid,
+          'region_identifier': request.region.identifier,
+          'limit': request.limit,
+          'include_unknown': request.includeUnknown,
+        },
       };
 }

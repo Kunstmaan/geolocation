@@ -17,6 +17,11 @@ part 'channel/location_channel.dart';
 part 'channel/param.dart';
 part 'data/location.dart';
 part 'data/location_result.dart';
+part 'data/geofence.dart';
+part 'data/geofence_result.dart';
+part 'data/ibeacon.dart';
+part 'data/ibeaconregion.dart';
+part 'data/ibeacon_result.dart';
 part 'data/permission.dart';
 part 'data/result.dart';
 part 'facet_android/location.dart';
@@ -152,6 +157,12 @@ class Geolocation {
         accuracy,
         inBackground,
       ));
+
+  static Stream<GeoFenceResult> addGeoFencingRequest({
+    @required int id,
+    @required GeoFence geoFence,
+  }) =>
+      _locationChannel.geoFenceUpdates(new _GeoFenceUpdatesRequest(id, geoFence), false);
 
   /// Requests continuous [Location] updates.
   /// Automatically request location [permission] beforehand if not granted.

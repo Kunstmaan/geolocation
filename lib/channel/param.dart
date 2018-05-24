@@ -23,3 +23,26 @@ class _LocationUpdatesRequest {
 }
 
 enum _LocationUpdateStrategy { current, single, continuous }
+
+class _GeoFenceUpdatesRequest {
+  _GeoFenceUpdatesRequest(
+    this.id,
+    this.geoFence, 
+  );
+  int id;
+  final GeoFence geoFence;
+}
+
+class _IBeaconUpdatesRequest {
+  _IBeaconUpdatesRequest(
+    this.id,
+    this.region, 
+    this.limit,
+    this.includeUnknown,
+  );
+  int id;
+  final IBeaconRegion region;
+  int limit;
+  bool includeUnknown;
+}
+
