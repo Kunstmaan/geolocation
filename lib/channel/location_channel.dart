@@ -25,12 +25,15 @@ class _LocationChannel {
       new _CustomEventChannel('geolocation/locationUpdates');
   static final _CustomEventChannel _geoFenceUpdatesChannel =
       new _CustomEventChannel('geolocation/geoFenceUpdates');
+  static final _CustomEventChannel _iBeaconUpdatesChannel =
+      new _CustomEventChannel('geolocation/iBeaconUpdates');
   static const String _loggingTag = 'location result';
 
   // Active subscriptions to channel event stream of location updates
   // Every data from channel stream will be forwarded to the subscriptions
   List<_LocationUpdatesSubscription> _locationUpdatesSubscriptions = [];
   List<_GeoFenceUpdatesSubscription> _geoFenceUpdatesSubscriptions = [];
+  List<_IBeaconUpdatesSubscription> _iBeaconUpdatesSubscriptions = [];
 
   Future<GeolocationResult> isLocationOperational(
       LocationPermission permission) async {
@@ -197,6 +200,76 @@ Stream<GeoFenceResult> geoFenceUpdates(_GeoFenceUpdatesRequest request, bool sin
   }
 }
 
+  // Creates a new subscription to the channel stream and notifies
+// the platform about the desired params (accuracy, frequency, strategy) so the platform
+// can start the location request if it's the first subscription or update ongoing request with new params if needed
+Stream<IBeaconResult> iBeaconUpdates(_IBeaconUpdatesRequest request, bool singleUpdate) {
+    // The stream that will be returned for the current geofence request
+    StreamController<IBeaconResult> controller;
+
+    _IBeaconUpdatesSubscription subscriptionWithRequest;
+
+    // Subscribe and listen to channel stream of geofence results
+    final StreamSubscription<IBeaconResult> subscription =
+        _iBeaconUpdatesChannel.stream.map((data) {
+      _log(data, tag: _loggingTag);
+      var resultObject = _Codec.decodeIBeaconResult(data);
+      return resultObject;
+    }).listen((IBeaconResult result) {
+      // Forward channel stream geofence result to subscription
+      controller.add(result);
+    });
+
+    subscription.onDone(() {
+      _iBeaconUpdatesSubscriptions.remove(subscriptionWithRequest);
+          if (singleUpdate) {
+            controller.close();
+            subscription.cancel();
+          }
+    });
+
+    subscriptionWithRequest =
+        new _IBeaconUpdatesSubscription(request, subscription);
+
+    // Add unique id for each request, in order to be able to remove them on platform side afterwards
+    subscriptionWithRequest.request.id =
+        (_iBeaconUpdatesSubscriptions.isNotEmpty
+                ? _iBeaconUpdatesSubscriptions
+                    .map((it) => it.request.id)
+                    .reduce(math.max)
+                : 0) +
+            1;
+
+    _log('create geofence updates request [id=${subscriptionWithRequest.request
+        .id}]');
+    _iBeaconUpdatesSubscriptions.add(subscriptionWithRequest);
+
+    controller = new StreamController<IBeaconResult>.broadcast(
+      onListen: () {
+        _log('add iBeacon updates request [id=${subscriptionWithRequest.request
+            .id}]');
+        _invokeChannelMethod('ibeacon result', _channel, 'addIBeaconRequest',
+            _Codec.encodeGeoFenceUpdatesRequest(request));
+      },
+      onCancel: () async {
+        _log('remove iBeacon updates request [id=${subscriptionWithRequest
+            .request
+            .id}]');
+        subscriptionWithRequest.subscription.cancel();
+
+        await _invokeChannelMethod(
+            'ibeacon result',
+            _channel,
+            'removeIBeaconRequest',
+            _Codec.encodeIBeaconUpdatesRequest(request));
+        _iBeaconUpdatesSubscriptions.remove(subscriptionWithRequest);
+      },
+    );
+
+    return controller.stream;
+  }
+}
+
 class _LocationUpdatesSubscription {
   _LocationUpdatesSubscription(this.request, this.subscription);
 
@@ -209,6 +282,13 @@ class _GeoFenceUpdatesSubscription {
 
   final _GeoFenceUpdatesRequest request;
   final StreamSubscription<GeoFenceResult> subscription;
+}
+
+class _IBeaconUpdatesSubscription {
+  _IBeaconUpdatesSubscription(this.request, this.subscription);
+
+  final _IBeaconUpdatesRequest request;
+  final StreamSubscription<IBeaconResult> subscription;
 }
 
 // Custom event channel that manages a single instance of the stream and exposes.

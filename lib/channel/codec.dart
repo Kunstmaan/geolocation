@@ -13,6 +13,9 @@ class _Codec {
   static GeoFenceResult decodeGeoFenceResult(String data) =>
       _JsonCodec.geoFenceResultFromJson(json.decode(data));
 
+  static GeoFenceResult decodeIBeaconResult(String data) =>
+      _JsonCodec.iBeaconResultFromJson(json.decode(data));
+
   static String encodeLocationPermission(LocationPermission permission) =>
       platformSpecific(
         _Codec.encodeEnum(permission.android),
@@ -24,6 +27,9 @@ class _Codec {
 
   static String encodeGeoFenceUpdatesRequest(_GeoFenceUpdatesRequest request) =>
       json.encode(_JsonCodec.geoFenceUpdatesRequestToJson(request));
+
+  static String encodeIBeaconUpdatesRequest(_IBeaconUpdatesRequest request) =>
+      json.encode(_JsonCodec.iBeaconUpdatesRequestToJson(request));
 
   // see: https://stackoverflow.com/questions/49611724/dart-how-to-json-decode-0-as-double
   static double parseJsonNumber(dynamic value) {
@@ -99,6 +105,24 @@ class _JsonCodec {
         geoFenceFromJson(json['data']['region']),
       );
 
+
+  static IBeaconResult iBeaconResultFromJson(Map<String, dynamic> json) =>
+      new IBeaconResult._(
+        json['isSuccessful'],
+        json['error'] != null ? resultErrorFromJson(json['error']) : null,
+        json['data']['id'],
+        iBeaconFromJson(json['data']),
+        _Codec.parseJsonNumber(json['data']['time_stamp']), 
+      );
+
+  static IBeacon iBeaconFromJson(Map<String, dynamic> json) =>
+    new IBeacon(
+      json['uuid'],
+      _Codec.parseJsonNumber(json['major']), 
+      _Codec.parseJsonNumber(json['minor']), 
+      _Codec.parseJsonNumber(json['proximity']), 
+    );
+
   static GeoFence geoFenceFromJson(Map<String, dynamic> json) =>
       new GeoFence(
         _Codec.parseJsonNumber(json['centerLatitude']), 
@@ -137,6 +161,18 @@ class _JsonCodec {
           'centerLatitude': request.geoFence.center.latitude,
           'centerLongitude': request.geoFence.center.longitude,
           'radius': request.geoFence.radius,
+        },
+      };
+
+    static Map<String, dynamic> iBeaconUpdatesRequestToJson(
+          _IBeaconUpdatesRequest request) =>
+      {
+        'id': request.id,
+        'region': {
+          'region_uuid': request.region.proximityUuid,
+          'region_identifier': request.region.identifier,
+          'limit': request.limit,
+          'include_unknown': request.includeUnknown,
         },
       };
 }

@@ -33,3 +33,16 @@ class _GeoFenceUpdatesRequest {
   final GeoFence geoFence;
 }
 
+class _IBeaconUpdatesRequest {
+  _IBeaconUpdatesRequest(
+    this.id,
+    this.region, 
+    this.limit,
+    this.includeUnknown,
+  );
+  int id;
+  final IBeaconregion region;
+  int limit;
+  bool includeUnknown;
+}
+
