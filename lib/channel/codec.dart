@@ -118,8 +118,8 @@ class _JsonCodec {
   static IBeacon iBeaconFromJson(Map<String, dynamic> json) =>
     new IBeacon(
       json['uuid'],
-      _Codec.parseJsonNumber(json['major']), 
-      _Codec.parseJsonNumber(json['minor']), 
+      json['major'], 
+      json['minor'], 
     );
 
   static GeoFence geoFenceFromJson(Map<String, dynamic> json) =>
