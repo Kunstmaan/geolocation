@@ -146,10 +146,10 @@ class LocationClient : NSObject, CLLocationManagerDelegate {
             let monitoredRegion = try MonitoredBeaconRegion(with: request.region.regionUuid, identifier: request.region.regionIdentifier, limit: request.region.limit, includeUnknown: request.region.includeUnknown) { (action) in
                 callback(Result<IBeaconResult>.success(with: IBeaconResult(id: request.id, beacon: action, result: true)))
             }
-            if !monitoredBeaconRegions.contains(monitoredRegion) {
+            if !monitoredBeaconRegions.contains(monitoredRegion){
                 monitoredBeaconRegions.append(monitoredRegion)
                 iBeaconUpdatesRequests.append(request)
-                BeaconManager.shared.add(region: monitoredRegion.regionUuid, identifier: monitoredRegion.regionIdentifier, limit: monitoredRegion.limit, includeUnknown: monitoredRegion.includeUnknown, onRanged: monitoredRegion.didRange)
+                try BeaconManager.shared.add(region: monitoredRegion.regionUuid, identifier: monitoredRegion.regionIdentifier, limit: monitoredRegion.limit, includeUnknown: monitoredRegion.includeUnknown, onRanged: monitoredRegion.didRange)
             }
         } catch {
     callback(Result<IBeaconResult>.failure(of: .tooManyRegionsMonitored))

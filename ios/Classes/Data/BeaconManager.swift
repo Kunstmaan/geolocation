@@ -148,7 +148,7 @@ extension BeaconManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {}
 }
 
-struct MonitoredBeaconRegion: Codable {
+class MonitoredBeaconRegion: NSObject, Codable {
     
     let region: CLBeaconRegion
     let regionUuid: String
@@ -177,7 +177,7 @@ struct MonitoredBeaconRegion: Codable {
         self.limit = limit
     }
     
-    init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         regionUuid = try container.decode(String.self, forKey: .regionUuid)
         regionIdentifier = try container.decode(String.self, forKey: .regionIdentifier)
